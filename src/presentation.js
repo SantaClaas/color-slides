@@ -98,7 +98,6 @@ function useCleanup(getConnection) {
 }
 
 /**
- *
  * @param {import("solid-js").Setter<any>} setConnection
  * @param {PresentationRequest} request
  */
@@ -108,7 +107,21 @@ function useReconnect(setConnection, request) {
     const id = localStorage["presentation id"];
     if (!id) return;
 
-    const connection = await request.reconnect(id);
+    let connection;
+    try {
+      connection = await request.reconnect(id);
+    } catch (error) {
+      console.warn(
+        "Failed to reconnect to ",
+        id,
+        ". Stale connection id?",
+        error
+      );
+      // Remove the connection id if it is invalid
+      delete localStorage["presentation id"];
+      return;
+    }
+
     setConnection(connection);
   });
 }
@@ -118,7 +131,7 @@ export function usePresentationApi() {
   document.onabort;
   //TODO check if is supported by browser
   const isAvailable = useIsAvailable(request);
-  /** @type {import("solid-js").Signal< PresentationConnection | undefined | null>}*/
+  /** @type {import("solid-js").Signal<PresentationConnection | undefined | null>}*/
   const [connection, setConnection] = createSignal();
   useReconnect(setConnection, request);
 
