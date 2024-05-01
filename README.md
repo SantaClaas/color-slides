@@ -4,3 +4,4 @@ Awesome Web APIs:
 - [Fullscreen API](https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API/Guide)
 - [Window Management API](https://developer.mozilla.org/en-US/docs/Web/API/Window_Management_API)
 - Advice from slidy: https://www.w3.org/Talks/Tools/Slidy2/#(1)
+- Container queries for styling slides based on where they are displayed e.g. fullscreen, preview or editor
