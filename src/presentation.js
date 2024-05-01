@@ -6,14 +6,15 @@ import {
   onMount,
 } from "solid-js";
 
-const PRESENTATION_URLS = ["/"];
-// @ts-ignore Can not find type definitions for this Browser API
-const request = new PresentationRequest(PRESENTATION_URLS);
+const PRESENTATION_URLS = ["/", "/slides"];
+
 /**
  *
- * @param {(event: Event) => void} onAvailabilityChange
+ * @param {(event: Event & {target: PresentationAvailability}) => void} onAvailabilityChange
+ * @param {PresentationRequest} request
  */
-async function getIsAvailable(onAvailabilityChange) {
+async function getIsAvailable(onAvailabilityChange, request) {
+  /** @type {PresentationAvailability} */
   let availability;
   try {
     availability = await request.getAvailability();
@@ -27,38 +28,50 @@ async function getIsAvailable(onAvailabilityChange) {
     return true;
   }
 
-  availability.addEventListener("change", onAvailabilityChange);
+  availability.addEventListener(
+    "change",
+    /** @type {(event: Event) => void} */ (onAvailabilityChange)
+  );
 }
 
-function useIsAvailable() {
+/**
+ *
+ * @param {PresentationRequest} request
+ * @returns {import("solid-js").Accessor<boolean>}
+ */
+function useIsAvailable(request) {
   //TODO add third state of "is loading"
   // Can not use crateResource because we need to react to the availability change event
   const [isAvailable, setIsAvailable] = createSignal(false);
 
   onMount(async () => {
     getIsAvailable((event) => {
-      // @ts-ignore
+      console.debug("Availability changed", event.target?.value);
       setIsAvailable(event.target?.value);
-    });
+    }, request);
   });
 
   return isAvailable;
 }
 
+// What do I want the API surface to look like?
+// Can I make a connection?
+
 /**
  * Enable the user agent to initialize presentations
  * @param {import("solid-js").Setter<any>} setConnection
+ * @param {PresentationRequest} request
  */
-function enableUserAgent(setConnection) {
-  if (!("presentation" in navigator)) return;
-  // @ts-ignore
-  navigator.presentation.defaultRequest = request;
-  // Event might not exist
-  // @ts-ignore
-  navigator.presentation.onconnectionavailable = (event) => {
-    console.log("Connection available", event.connection.id);
-    setConnection(event.connection);
-  };
+function enableUserAgent(setConnection, request) {
+  onMount(() => {
+    if (!("presentation" in navigator)) return;
+    navigator.presentation.defaultRequest = request;
+    // Event might not exist
+    navigator.presentation.onconnectionavailable = (event) => {
+      console.log("Connection available", event.connection.id);
+      setConnection(event.connection);
+    };
+  });
 }
 /**
  *
@@ -75,6 +88,7 @@ function useCleanup(getConnection) {
       return newConnection;
 
     // Clean up the old connection
+    delete localStorage["presentation id"];
     oldConnection.onclose = undefined;
     oldConnection.close();
 
@@ -82,29 +96,38 @@ function useCleanup(getConnection) {
     return newConnection;
   }, getConnection());
 }
+
+/**
+ *
+ * @param {import("solid-js").Setter<any>} setConnection
+ * @param {PresentationRequest} request
+ */
+function useReconnect(setConnection, request) {
+  // Reconnect if there is an existing connection
+  onMount(async () => {
+    const id = localStorage["presentation id"];
+    if (!id) return;
+
+    const connection = await request.reconnect(id);
+    setConnection(connection);
+  });
+}
+
 export function usePresentationApi() {
-  usePresentiationState();
+  const request = new PresentationRequest(PRESENTATION_URLS);
+  document.onabort;
   //TODO check if is supported by browser
-  const isAvailable = useIsAvailable();
-  // @ts-ignore
+  const isAvailable = useIsAvailable(request);
+  /** @type {import("solid-js").Signal< PresentationConnection | undefined | null>}*/
   const [connection, setConnection] = createSignal();
+  useReconnect(setConnection, request);
 
   const [isConnected, setIsConnected] = createSignal(false);
 
   // Presentation can be initialized by the user agent (the user's browser)
-  onMount(() => {
-    enableUserAgent(setConnection);
-  });
-
-  // Reconnect if there is an existing connection
-  onMount(() => {
-    const id = localStorage["presentation id"];
-    if (!id) return;
-    request.reconnect(id).then(setConnection);
-  });
+  enableUserAgent(setConnection, request);
 
   async function present() {
-    // @ts-ignore
     const connection = await request.start();
     setConnection(connection);
   }
@@ -144,28 +167,27 @@ export function usePresentationApi() {
     const currentConnection = connection();
     if (!currentConnection) return;
     // Persist connection id when we have a new connection
-    localStorage["presentation id"] = connection().id;
+    localStorage["presentation id"] = currentConnection.id;
 
     // Monitor the connection state
-    connection().addEventListener("connect", () => {
+    currentConnection.addEventListener("connect", () => {
       console.log("Connected to presentation");
       setIsConnected(true);
 
-      // @ts-ignore
-      connection().addEventListener("message", (message) => {
-        console.log("message from connection", message.data);
+      currentConnection.addEventListener("message", (message) => {
+        console.log(
+          "message from connection",
+          /** @type {Event & {data: string}} */ (message).data
+        );
       });
-
-      // Send initial message
-      connection().send("Hello, presentation!");
     });
 
-    connection().addEventListener("close", () => {
+    currentConnection.addEventListener("close", () => {
       setConnection(null);
       setIsConnected(false);
     });
 
-    connection().addEventListener("terminate", () => {
+    currentConnection.addEventListener("terminate", () => {
       // Remove persisted connection id if there is one
       delete localStorage["presentation id"];
       setConnection(null);
@@ -181,40 +203,57 @@ export function usePresentationApi() {
     isConnected,
   };
 }
+/**
+ * Tries to get list of active connections from the receiver
+ * If there is a presentation then we are on the big presentation screen and get controlled from a controller in a
+ * different context that sends messages to us
+ * @returns {Promise<boolean>}
+ */
+async function enterPresentationState() {
+  const connectionList = navigator.presentation?.receiver?.connectionList;
+  // If the connection list does not exist, then we are not in the presentation user agent on the screen
+  if (!connectionList) return false;
 
-// @ts-ignore
-function usePresentiationState() {
-  // This code is intended to run when document is shown as presentation
-  onMount(async () => {
-    // @ts-ignore
-    const connectionList = navigator.presentation?.receiver?.connectionList;
-    if (!connectionList) {
-      console.debug("No connection list available");
-      return;
-    }
-
-    const list = await connectionList;
-    for (const connection of list.connections) {
-      console.log("Connection", connection.id);
-      // @ts-ignore
-      connection.addEventListener("message", (message) => {
-        console.log("Message from sender", message.data);
-        connection.send("Hello, I got your message!", message.data);
-      });
-
-      connection.send("Hello, I am connected to you!");
-    }
-
-    // @ts-ignore
-    list.addEventListener("connectionavailable", (event) => {
-      console.log("New connection available", event.connection.id);
-      // @ts-ignore
-      event.connection.addEventListener("message", (message) => {
-        console.log("Message from sender", message.data);
-        event.connection.send("Hello, I got your message!", message.data);
-      });
-
-      event.connection.send("Hello, I am connected to you!");
+  const list = await connectionList;
+  for (const connection of list.connections) {
+    console.log("Connection", connection.id);
+    connection.addEventListener("message", (message) => {
+      console.log(
+        "Message from sender",
+        /** @type {Event & {data: string}} */ (message).data
+      );
+      connection.send(
+        "Hello, I got your message!" +
+          /** @type {Event & {data: string}} */ (message).data
+      );
     });
-  });
+
+    connection.send("Hello, I am connected to you!");
+  }
+
+  list.addEventListener(
+    "connectionavailable",
+    // /**
+    //  *
+    //  * @param {PresentationAvailableEvent} event
+    //  */
+    (event) => {
+      const connection = /**@type {PresentationAvailableEvent} */ (event)
+        .connection;
+
+      console.log("New connection available", connection.id);
+
+      connection.addEventListener("message", (message) => {
+        connection.send(/** @type {Event & {data: string}} */ (message).data);
+      });
+    }
+  );
+
+  return true;
+}
+export function usePresentiationState() {
+  // This code is intended to run when document is shown as presentation
+  const [isPresenting] = createResource(enterPresentationState);
+
+  return isPresenting;
 }
