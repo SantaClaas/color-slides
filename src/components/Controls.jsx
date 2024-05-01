@@ -12,7 +12,8 @@ import {
   PresentToAllIcon,
 } from "../icons";
 import IconButton from "./IconButton";
-import { useNavigate, useParams } from "@solidjs/router";
+import { useNavigate, useParams, A } from "@solidjs/router";
+import { SLIDE_COUNT } from "./Slides";
 
 export default function () {
   const { isFullscreen, toggleFullscreen } = useFullscreeen();
@@ -27,17 +28,25 @@ export default function () {
 
   const parameters = useParams();
 
-  const page = parameters.page || 0;
+  const page = () => Number(parameters.page) || 0;
+  const next = () => (page() + 1 >= SLIDE_COUNT ? 0 : page() + 1);
+  const previous = () => (page() - 1 < 0 ? SLIDE_COUNT - 1 : page() - 1);
 
+  console.log("Page", typeof page);
   return (
     <aside class="absolute right-0 bottom-0 flex gap-4 p-4">
-      {/* TODO replace with A element */}
-      <IconButton onClick={() => page > 0 && navigate(`/slides/${page - 1}`)}>
+      <a
+        href={`/slides/${previous()}`}
+        class="text-white border-white border rounded-full p-3 place-items-center grid"
+      >
         <NavigateBeforeIcon />
-      </IconButton>
-      <IconButton onClick={() => navigate(`/slides/${page + 1}`)}>
+      </a>
+      <a
+        href={`/slides/${next()}`}
+        class="text-white border-white border rounded-full p-3 place-items-center grid"
+      >
         <NavigateNextIcon />
-      </IconButton>
+      </a>
       {document.fullscreenEnabled && (
         <IconButton onClick={toggleFullscreen}>
           <Show when={isFullscreen()} fallback={<FullscreenIcon />}>

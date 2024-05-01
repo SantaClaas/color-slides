@@ -1,5 +1,6 @@
 import { useParams } from "@solidjs/router";
 import { Show } from "solid-js";
+import Controls from "./Controls";
 
 function Slide0() {
   return (
@@ -31,11 +32,16 @@ export default function () {
   const parameters = useParams();
 
   return (
-    <Show
-      when={parameters.page && parameters.page < SLIDES.length}
-      fallback={Slide0}
-    >
-      {SLIDES[parameters.page]}
-    </Show>
+    <>
+      <Show
+        when={parameters.page && parameters.page < SLIDES.length}
+        fallback={Slide0}
+      >
+        {SLIDES[parameters.page]}
+      </Show>
+      <Controls />
+    </>
   );
 }
+
+export const SLIDE_COUNT = SLIDES.length;
