@@ -74,7 +74,7 @@ export default function () {
     // The order of requesting fullscreen and then opening the window is important
     // The other way around does not work
     // Then fullscreen the current screen with the presentation to the screen
-    await presentation.requestFullscreen({
+    await document.documentElement.requestFullscreen({
       screen: presentationScreen,
     });
 
@@ -89,7 +89,10 @@ export default function () {
   }
 
   return (
-    <aside id="controls" class="absolute right-0 bottom-0 flex gap-4 p-4">
+    <aside
+      id="controls"
+      class="in-fullscreen:hidden absolute right-0 bottom-0 flex gap-4 p-4"
+    >
       <a
         href={previousPath()}
         class="text-white border-white border rounded-full p-3 place-items-center grid"
