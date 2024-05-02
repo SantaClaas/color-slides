@@ -1,7 +1,8 @@
 {
-  "include": ["src/presentationapi.d.ts", "src/**/*.{js,jsx}"],
+  "include": ["src/**/*"],
   "compilerOptions": {
     "strict": true,
+    "noImplicitAny": true,
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "node",
@@ -9,7 +10,7 @@
     "esModuleInterop": true,
     "jsx": "preserve",
     "jsxImportSource": "solid-js",
-    "types": ["vite/client"],
+    "types": ["vite/client", "webscreens-window-placement"],
     "noEmit": true,
     "isolatedModules": true,
     "checkJs": true

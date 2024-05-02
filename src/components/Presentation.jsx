@@ -1,6 +1,7 @@
 import { useParams } from "@solidjs/router";
-import { Show } from "solid-js";
-import Controls from "./Controls";
+import { Show, onMount } from "solid-js";
+import Controls, { channel } from "./Controls";
+import { Dynamic } from "solid-js/web";
 
 function Slide0() {
   return (
@@ -28,18 +29,22 @@ function Slide1() {
 }
 
 const SLIDES = [Slide0, Slide1];
+
 export default function () {
   const parameters = useParams();
+  const page = () => Number(parameters.page) || 0;
 
   return (
     <>
-      <Show
-        when={parameters.page && parameters.page < SLIDES.length}
-        fallback={Slide0}
-      >
-        {SLIDES[parameters.page]}
-      </Show>
-      <Controls />
+      {/* Temporary div to have element containing slides */}
+      <div id="presentation">
+        <Show
+          when={parameters.page && page() < SLIDES.length}
+          fallback={<Slide0 />}
+        >
+          <Dynamic component={SLIDES[page()]} />
+        </Show>
+      </div>
     </>
   );
 }

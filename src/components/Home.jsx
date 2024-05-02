@@ -1,5 +1,5 @@
 import Controls from "./Controls";
-import Presentation from "./Slides";
+import Presentation from "./Presentation";
 
 /**
  * The default landing page for when opening the presentation app
