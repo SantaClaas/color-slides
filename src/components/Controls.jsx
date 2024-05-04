@@ -12,23 +12,10 @@ import {
   PresentToAllIcon,
 } from "../icons";
 import IconButton from "./IconButton";
-import { useNavigate, useParams, A } from "@solidjs/router";
-import { SLIDE_COUNT } from "./Presentation";
 import { selectScreen } from "./screen";
-
-export const channel = new BroadcastChannel("presentation-api");
-
-function usePageNavigation() {
-  const parameters = useParams();
-
-  const page = () => Number(parameters.page) || 0;
-  const next = () => (page() + 1 >= SLIDE_COUNT ? 0 : page() + 1);
-  const previous = () => (page() - 1 < 0 ? SLIDE_COUNT - 1 : page() - 1);
-  const nextPath = () => `/presentation/${next()}`;
-  const previousPath = () => `/presentation/${previous()}`;
-
-  return { nextPath, previousPath };
-}
+import { useGlobalPageContext, usePage } from "./PresentationContext";
+import { A, useLocation, useNavigate, useParams } from "@solidjs/router";
+import { SLIDE_COUNT } from "./Presentation";
 
 /**
  * @param {number} left
@@ -46,24 +33,39 @@ function openWindow(left, top, width, height, url) {
   return newWindow;
 }
 
+function PageControls() {
+  const page = usePage();
+
+  const paths = () => ({
+    next: SLIDE_COUNT > page() + 1 ? `/${page() + 1}` : "",
+    previous: page() - 1 >= 0 ? `/${page() - 1}` : "",
+  });
+
+  createEffect(() => console.debug("paths changed", paths()));
+  return (
+    <>
+      <A
+        href={paths().previous}
+        class="text-white border-white border rounded-full p-3 place-items-center grid"
+      >
+        <NavigateBeforeIcon />
+      </A>
+      <A
+        href={paths().next}
+        class="text-white border-white border rounded-full p-3 place-items-center grid"
+      >
+        <NavigateNextIcon />
+      </A>
+    </>
+  );
+}
 export default function () {
   const { isFullscreen, toggleFullscreen } = useFullscreeen();
   const { present, isConnected, isAvailable, close, terminate } =
     usePresentationApi();
-  const { nextPath, previousPath } = usePageNavigation();
 
   const isWindowManagementSupported = "getScreenDetails" in window;
 
-  onMount(() => {
-    channel.addEventListener("message", (event) => {
-      console.log("Controls received message", event.data);
-
-      if (event.data.type === "ready") {
-        channel.postMessage({ type: "go fullscreen" });
-      }
-    });
-  });
-  const navigate = useNavigate();
   async function presentToAll() {
     //TODO permissions dialog requesting and explaining why we need access to the window managment API permissions
     //TODO think of manual solution with creating two windows and the user having to manually move them to a different screen
@@ -93,18 +95,7 @@ export default function () {
       id="controls"
       class="in-fullscreen:hidden absolute right-0 bottom-0 flex gap-4 p-4"
     >
-      <a
-        href={previousPath()}
-        class="text-white border-white border rounded-full p-3 place-items-center grid"
-      >
-        <NavigateBeforeIcon />
-      </a>
-      <a
-        href={nextPath()}
-        class="text-white border-white border rounded-full p-3 place-items-center grid"
-      >
-        <NavigateNextIcon />
-      </a>
+      <PageControls />
       {document.fullscreenEnabled && (
         <IconButton onClick={toggleFullscreen}>
           <Show when={isFullscreen()} fallback={<FullscreenIcon />}>

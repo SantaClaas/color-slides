@@ -3,13 +3,14 @@ import Home from "./components/Home";
 import { Router, Route } from "@solidjs/router";
 import Presentation from "./components/Presentation";
 import Notes from "./components/Notes";
+import { PresentationProvider } from "./components/PresentationContext";
 
 function App() {
   return (
-    <Router>
+    <Router root={PresentationProvider}>
       <Route path="/presentation/:page?" component={Presentation} />
       <Route path="/notes" component={Notes} />
-      <Route path="/" component={Home} />
+      <Route path="/:page?" component={Home} />
     </Router>
   );
 }
