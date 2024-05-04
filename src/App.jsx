@@ -10,7 +10,7 @@ function App() {
     <Router root={PresentationProvider}>
       <Route path="/presentation/" component={Presentation} />
       <Route path="/notes/" component={Notes} />
-      <Route path="/" component={Home} />
+      <Route path="/:page?" component={Home} />
     </Router>
   );
 }
