@@ -1,7 +1,7 @@
 /**
  * @typedef {Object} IconButtonProperties
- * @property {string} color
- * @property {import("solid-js").JSX.EventHandlerUnion<HTMLButtonElement, MouseEvent>} onClick
+ * @property {string} [color]
+ * @property {import("solid-js").JSX.EventHandlerUnion<HTMLButtonElement, MouseEvent> } [onClick]
  */
 /**
  * @param {import("solid-js").ParentProps<IconButtonProperties>} properties
