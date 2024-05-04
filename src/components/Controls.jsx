@@ -12,7 +12,7 @@ import {
   PresentToAllIcon,
 } from "../icons";
 import IconButton from "./IconButton";
-import { selectScreen } from "./screen";
+import { selectScreens } from "./screen";
 import { useGlobalPageContext, usePage } from "./PresentationContext";
 import { A, useLocation, useNavigate, useParams } from "@solidjs/router";
 import { SLIDE_COUNT } from "./Presentation";
@@ -71,7 +71,7 @@ export default function () {
     //TODO think of manual solution with creating two windows and the user having to manually move them to a different screen
     if (!isWindowManagementSupported) return;
     const screens = await window.getScreenDetails();
-    const presentationScreen = selectScreen(screens);
+    const [presentationScreen, notesScreen] = selectScreens(screens);
 
     // The order of requesting fullscreen and then opening the window is important
     // The other way around does not work
@@ -80,12 +80,15 @@ export default function () {
       screen: presentationScreen,
     });
 
+    // Can't show notes if there is no screen for them
+    if (!notesScreen) return;
+
     // Open control in new window on current screen
-    const newWindow = openWindow(
-      screens.currentScreen.left,
-      screens.currentScreen.top,
-      screens.currentScreen.width,
-      screens.currentScreen.height,
+    const notesWindow = openWindow(
+      notesScreen.left,
+      notesScreen.top,
+      notesScreen.width,
+      notesScreen.height,
       "/notes"
     );
   }
