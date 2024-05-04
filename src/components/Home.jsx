@@ -10,7 +10,7 @@ export default function () {
   return (
     <>
       <Presentation />
-      <Controls />
+      <Controls currentPath="/" />
     </>
   );
 }

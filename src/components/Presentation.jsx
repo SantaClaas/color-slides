@@ -1,7 +1,7 @@
 import { useParams } from "@solidjs/router";
 import { Show, createEffect } from "solid-js";
 import { Dynamic } from "solid-js/web";
-import { usePage } from "./PresentationContext";
+import { useGlobalPageContext } from "./PresentationContext";
 
 function Slide0() {
   return (
@@ -28,11 +28,11 @@ function Slide1() {
   );
 }
 
-const SLIDES = [Slide0, Slide1];
+export const SLIDES = [Slide0, Slide1];
 
 export default function () {
-  const page = usePage();
-
+  const [globalPage, setPage] = useGlobalPageContext();
+  const page = () => globalPage() ?? 0;
   return (
     <>
       {/* Temporary div to have element containing slides */}

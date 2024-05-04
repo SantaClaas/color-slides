@@ -1,8 +1,7 @@
-import { Show, createEffect, createSignal, onMount } from "solid-js";
+import { Show } from "solid-js";
 import { useFullscreeen } from "../fullscreen";
-import { usePresentationApi, usePresentiationState } from "../presentation";
+import { usePresentationApi } from "../presentation";
 import {
-  CancelPresentationIcon,
   CastIcon,
   CastIconFill,
   FullscreenExitIcon,
@@ -13,8 +12,8 @@ import {
 } from "../icons";
 import IconButton from "./IconButton";
 import { selectScreens } from "./screen";
-import { useGlobalPageContext, usePage } from "./PresentationContext";
-import { A, useLocation, useNavigate, useParams } from "@solidjs/router";
+import { useGlobalPageContext } from "./PresentationContext";
+import { A } from "@solidjs/router";
 import { SLIDE_COUNT } from "./Presentation";
 
 /**
@@ -33,33 +32,41 @@ function openWindow(left, top, width, height, url) {
   return newWindow;
 }
 
-function PageControls() {
-  const page = usePage();
+/**
+ * @typedef {Object} PageControlsProperties
+ * @property {string} currentPath
+ */
 
-  const paths = () => ({
-    next: SLIDE_COUNT > page() + 1 ? `/${page() + 1}` : "",
-    previous: page() - 1 >= 0 ? `/${page() - 1}` : "",
-  });
+/**
+ * @param {PageControlsProperties} properties
+ * @returns {import("solid-js").JSX.Element}
+ */
+function PageControls({ currentPath }) {
+  const [globalPage, setPage] = useGlobalPageContext();
+  const page = () => globalPage() ?? 0;
 
-  createEffect(() => console.debug("paths changed", paths()));
   return (
     <>
-      <A
-        href={paths().previous}
-        class="text-white border-white border rounded-full p-3 place-items-center grid"
-      >
+      <IconButton onClick={() => setPage(page() - 1)}>
         <NavigateBeforeIcon />
-      </A>
-      <A
-        href={paths().next}
-        class="text-white border-white border rounded-full p-3 place-items-center grid"
-      >
+      </IconButton>
+      <IconButton onClick={() => setPage(page() + 1)}>
         <NavigateNextIcon />
-      </A>
+      </IconButton>
     </>
   );
 }
-export default function () {
+
+/**
+ * @typedef {Object} ControlProperties
+ * @property {string} currentPath
+ */
+
+/**
+ * @param {ControlProperties} properties
+ * @returns {import("solid-js").JSX.Element}
+ */
+export default function ({ currentPath }) {
   const { isFullscreen, toggleFullscreen } = useFullscreeen();
   const { present, isConnected, isAvailable, close, terminate } =
     usePresentationApi();
@@ -75,7 +82,6 @@ export default function () {
 
     // The order of requesting fullscreen and then opening the window is important
     // The other way around does not work
-    // Then fullscreen the current screen with the presentation to the screen
     await document.documentElement.requestFullscreen({
       screen: presentationScreen,
     });
@@ -98,7 +104,7 @@ export default function () {
       id="controls"
       class="in-fullscreen:hidden absolute right-0 bottom-0 flex gap-4 p-4"
     >
-      <PageControls />
+      <PageControls currentPath={currentPath} />
       {document.fullscreenEnabled && (
         <IconButton onClick={toggleFullscreen}>
           <Show when={isFullscreen()} fallback={<FullscreenIcon />}>

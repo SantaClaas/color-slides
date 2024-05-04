@@ -8,9 +8,9 @@ import { PresentationProvider } from "./components/PresentationContext";
 function App() {
   return (
     <Router root={PresentationProvider}>
-      <Route path="/presentation/:page?" component={Presentation} />
-      <Route path="/notes" component={Notes} />
-      <Route path="/:page?" component={Home} />
+      <Route path="/presentation/" component={Presentation} />
+      <Route path="/notes/" component={Notes} />
+      <Route path="/" component={Home} />
     </Router>
   );
 }
